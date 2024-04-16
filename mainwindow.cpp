@@ -10,18 +10,47 @@ MainWindow::MainWindow(QWidget *parent) :
     setFixedSize(890, 620); // Фискируем размер окна
 
     myPicture = new MyGraphicView();
-
     ui->gridLayout->addWidget(myPicture);
+
+    readSettings();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete myPicture;
 }
 
 void MainWindow::on_Generation_clicked()
 {
-    myPicture->numSquaresWidth  = ui->QLineEdit_Width->text().toInt();
-    myPicture->numSquaresHeight = ui->QLineEdit_Height->text().toInt();
-    myPicture->timer->start(50);
+    // Получение значения из QLineEdit:
+    QString widthText = ui->QLineEdit_Width->text();
+    QString heightText = ui->QLineEdit_Height->text();
+
+    qreal numSquaresWidth = widthText.toInt();
+    qreal numSquaresHeight = heightText.toInt();
+
+    // Проверка, что введены только натруальные числа:
+    bool isWidthNumber = !widthText.isEmpty() && numSquaresWidth > 0;
+    bool isHeightNumber = !heightText.isEmpty() && numSquaresHeight > 0;
+
+    if (!isWidthNumber || !isHeightNumber) {
+        QMessageBox::warning(this, "Ошибка", "Введите натуральные числа (1, 2, 3 и т.д.)");
+    } else {
+        myPicture->generate(numSquaresWidth, numSquaresHeight);
+    }
+}
+
+void inline MainWindow::readSettings()
+{
+    QSettings settings("./settings.ini", QSettings::IniFormat);
+    QPoint position = settings.value("Position", QPoint(500, 200)).toPoint();
+    move(position);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    QSettings settings("./settings.ini", QSettings::IniFormat);
+    settings.setValue("Position", pos());
+    QMainWindow::closeEvent(event);
 }

@@ -1,21 +1,21 @@
 #ifndef MYGRAPHICVIEW_H
 #define MYGRAPHICVIEW_H
 
-#include <QWidget>
 #include <QGraphicsView>
 #include <QGraphicsScene>
-#include <QVBoxLayout>
 #include <QGraphicsItemGroup>
+#include <QGraphicsRectItem>    // Для отрисовки квадратов
 #include <QTimer>
 
-#include <QGraphicsRectItem>
 #include <QDebug>
 
-#include <ctime>
+#include <chrono>       // Для рандомизации на основе времени
 
-#include <QWheelEvent>
+#include <QWheelEvent>  // Для масштабирования сцены
 
-// Расширяем класс QGraphicsView
+/**
+ * @brief Расширение класса QGraphicsView
+ */
 class MyGraphicView : public QGraphicsView
 {
     Q_OBJECT
@@ -25,51 +25,71 @@ public:
 
 signals:
 
-public slots:
-    void slotAlarmTimer();  /* слот для обработчика переполнения таймера
-                             * в нём будет производиться перерисовка
-                             * виджета
-                             * */
+private slots:
+    /**
+     * @brief СЛОТ для обработчика переполнения Таймера
+     *
+     * Производится перерисовка виджета
+     *
+     */
+    void slotAlarmTimer();
 
 private:
-    QGraphicsScene      *scene;     // Объявляем сцену для отрисовки
-    QGraphicsItemGroup  *group_1;   // Объявляем первую группу элементов
+    QGraphicsScene      *scene;             ///< Сцена для отрисовки
 
-public:
-    qreal numSquaresWidth;
-    qreal numSquaresHeight;
-//    QGraphicsItemGroup  *group_2;   // Объявляем вторую группу элементов
+    QGraphicsItemGroup  *squaresGroup;      ///< Группа элементов-квадратов
+    qreal                squareSize;        ///< Размер каждого квадрата
+    QColor               squareBrashColor;  ///< Цвет заливки квадратов
+    qreal                numSquaresWidth;   ///< Параметр ширины (чило квадратов по горизонтали)
+    qreal                numSquaresHeight;  ///< Параметр высоты (чило квадратов по вертикали)
 
-    /* Таймер для задержки отрисовки.
-     * Дело в том, что при создании окна и виджета
+    QGraphicsItemGroup  *literalsGroup;     ///< Объявляем вторую группу элементов
+    QPointF              pointA;            ///< Координаты точки А
+    QPointF              pointB;            ///< Координаты точки Б
+
+    /**
+     * @brief Таймер для задержки отрисовки
+     *
+     * При создании окна и виджета
      * необходимо некоторое время, чтобы родительский слой
      * развернулся, чтобы принимать от него адекватные параметры
-     * ширины и высоты
-     * */
+     * ширины и высоты.
+     *
+     */
     QTimer              *timer;
 
 private:
-    /* Перегружаем событие изменения размера окна,
-     * чтобы перехватывать его
-     * */
-    void resizeEvent(QResizeEvent *event);
-    /* Метод для удаления всех элементов
-     * из группы элементов
-     * */
-    void deleteItemsFromGroup(QGraphicsItemGroup *group_1);
+    /**
+     * @brief Метод для удаления всех элементов из группы элементов
+     * @param [in] group
+     */
+    void deleteItemsFromGroup(QGraphicsItemGroup *group);
 
-    void wheelEvent(QWheelEvent *event) override {
-            //timer->start(50);
-            // Масштабируем сцену при прокрутке колеса мыши
-            qreal scaleFactor = 1.15; // Фактор масштабирования
+    /**
+     * @brief Метод поиска и отображения пути
+     */
+    void findWay();
 
-            if (event->delta() > 0)
-                scale(scaleFactor, scaleFactor); // Увеличиваем масштаб
-            else
-                scale(1.0 / scaleFactor, 1.0 / scaleFactor); // Уменьшаем масштаб
+protected:
+    /**
+     * @brief Обработчик события смещения колеса прокрутки мыши
+     * @param [in] event
+     */
+    void wheelEvent(QWheelEvent *event) override;
 
-            event->accept(); // Помечаем событие как обработанное
-        }
+    /**
+     * @brief Обработчик события клика кнопки мыши
+     * @param [in] event
+     */
+    void mousePressEvent(QMouseEvent *event) override;
+
+public:
+    /**
+     * @brief Метод генерации лабиринта
+     * @param [in] width  Ширина в квадратах
+     * @param [in] height Высота в квадратах
+     */
+    void generate(const qreal& width, const qreal& height);
 };
 
 #endif // MYGRAPHICVIEW_H

@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 
+#include <QSettings>
+#include <QMessageBox>
 #include <mygraphicview.h>
 
 namespace Ui {
@@ -22,7 +24,19 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    MyGraphicView  *myPicture;  // Наш кастомный виджет
+    MyGraphicView  *myPicture;  ///< Кастомный виджет
+
+protected:
+    /**
+     * @brief Обработчк собиытия закрытия окна
+     * @param event
+     */
+    void closeEvent(QCloseEvent *event) override;
+
+    /**
+     * @brief Метод чтения настроек положения окна
+     */
+    void readSettings();
 };
 
 #endif // MAINWINDOW_H
