@@ -44,7 +44,7 @@ void MainWindow::on_Generation_clicked()
 void inline MainWindow::readSettings()
 {
     QSettings settings("./settings.ini", QSettings::IniFormat);
-    QPoint position = settings.value("Position", QPoint(500, 200)).toPoint();
+    QPoint position = settings.value("Position", QPoint(0, 0)).toPoint();
     move(position);
 }
 
