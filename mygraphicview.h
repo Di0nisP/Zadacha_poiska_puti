@@ -9,6 +9,7 @@
 
 #include <QDebug>
 
+#include <random>
 #include <chrono>       // Для рандомизации на основе времени
 
 #include <QWheelEvent>  // Для масштабирования сцены

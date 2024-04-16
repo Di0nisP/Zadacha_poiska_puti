@@ -104,7 +104,8 @@ void MyGraphicView::wheelEvent(QWheelEvent *event)
     // Масштабируем сцену при прокрутке колеса мыши
     qreal scaleFactor = 1.15; // Фактор масштабирования
 
-    if (event->delta() > 0)
+    if (event->angleDelta().y() > 0)    // Qt 6.6
+    //if (event->delta() > 0)           // Qt 5.6
         this->scale(scaleFactor, scaleFactor); // Увеличиваем масштаб
     else
         this->scale(1.0 / scaleFactor, 1.0 / scaleFactor); // Уменьшаем масштаб
