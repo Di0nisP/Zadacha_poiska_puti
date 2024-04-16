@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 
+#include <mygraphicview.h>
+
 namespace Ui {
 class MainWindow;
 }
@@ -15,8 +17,12 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+private slots:
+    void on_Generation_clicked();
+
 private:
     Ui::MainWindow *ui;
+    MyGraphicView  *myPicture;  // Наш кастомный виджет
 };
 
 #endif // MAINWINDOW_H
