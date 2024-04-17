@@ -11,6 +11,9 @@
 
 #include <random>
 #include <chrono>       // Для рандомизации на основе времени
+#include <unordered_map>
+#include <queue>
+#include <algorithm>
 
 #include <QWheelEvent>  // Для масштабирования сцены
 
@@ -20,6 +23,9 @@
 class MyGraphicView : public QGraphicsView
 {
     Q_OBJECT
+
+    using MyGraph = std::unordered_map< QGraphicsRectItem*, QVector<QGraphicsRectItem*> >;
+
 public:
     explicit MyGraphicView(QWidget *parent = 0);
     ~MyGraphicView();
@@ -30,7 +36,7 @@ private slots:
     /**
      * @brief СЛОТ для обработчика переполнения Таймера
      *
-     * Производится перерисовка виджета
+     * Производится перерисовка виджета.
      *
      */
     void slotAlarmTimer();
@@ -39,14 +45,17 @@ private:
     QGraphicsScene      *scene;             ///< Сцена для отрисовки
 
     QGraphicsItemGroup  *squaresGroup;      ///< Группа элементов-квадратов
-    qreal                squareSize;        ///< Размер каждого квадрата
+    qreal                squareSize;        ///< Размер квадратов
     QColor               squareBrashColor;  ///< Цвет заливки квадратов
     qreal                numSquaresWidth;   ///< Параметр ширины (чило квадратов по горизонтали)
     qreal                numSquaresHeight;  ///< Параметр высоты (чило квадратов по вертикали)
+    MyGraph              squaresGraph;      ///<
 
-    QGraphicsItemGroup  *literalsGroup;     ///< Объявляем вторую группу элементов
+    QGraphicsItemGroup  *literalsGroup;     ///< Группа элементов-литералов
     QPointF              pointA;            ///< Координаты точки А
     QPointF              pointB;            ///< Координаты точки Б
+    QGraphicsRectItem   *squareA;
+    QGraphicsRectItem   *squareB;
 
     /**
      * @brief Таймер для задержки отрисовки
@@ -62,14 +71,16 @@ private:
 private:
     /**
      * @brief Метод для удаления всех элементов из группы элементов
+     *
+     * Перебираем все элементы сцены, и если они принадлежат группе,
+     * переданной в метод, то удаляем их
+     *
      * @param [in] group
      */
     void deleteItemsFromGroup(QGraphicsItemGroup *group);
 
-    /**
-     * @brief Метод поиска и отображения пути
-     */
-    void findWay();
+    QVector<QGraphicsRectItem*> findWay(QGraphicsRectItem* start,
+                                        QGraphicsRectItem*   end);
 
 protected:
     /**
@@ -86,7 +97,7 @@ protected:
 
 public:
     /**
-     * @brief Метод генерации лабиринта
+     * @brief Метод инициализации и генерации лабиринта
      * @param [in] width  Ширина в квадратах
      * @param [in] height Высота в квадратах
      */
