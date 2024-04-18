@@ -24,10 +24,10 @@ MainWindow::~MainWindow()
 void MainWindow::on_Generation_clicked()
 {
     // Получение значения из QLineEdit:
-    QString widthText = ui->QLineEdit_Width->text();
+    QString  widthText = ui->QLineEdit_Width ->text();
     QString heightText = ui->QLineEdit_Height->text();
 
-    qreal numSquaresWidth = widthText.toInt();
+    qreal numSquaresWidth  =  widthText.toInt();
     qreal numSquaresHeight = heightText.toInt();
 
     // Проверка, что введены только натруальные числа:
