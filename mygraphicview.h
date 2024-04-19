@@ -10,6 +10,7 @@
 #include <QThread>
 //#include <QDebug>
 #include <QtConcurrent/QtConcurrent>
+#include <QProgressBar>
 
 #include <random>
 #include <chrono>
@@ -34,19 +35,21 @@ public:
 
 signals:
     void replotRequested();
-    void createGraphRequested();
+    void createGraphRequested(QProgressBar* parent);
 
 private slots:
     /**
      * @brief СЛОТ для перерисовки сцены
+     * @warning Проблема: сцена не сбрасывает размер
      */
     void replot();
 
     /**
      * @brief СЛОТ для формирования двусвязного списка \c squaresGraph
      * @warning Времязатратное выполнение. Нелинейная сложность.
+     * @param [in] parent
      */
-    void createGraph();
+    void createGraph(QProgressBar* parent);
 
 private:
     QGraphicsScene      *scene;             ///< Сцена для отрисовки
@@ -56,6 +59,7 @@ private:
     QColor               squareBrashColor;  ///< Цвет заливки квадратов
     qreal                numSquaresWidth;   ///< Параметр ширины (чило квадратов по горизонтали)
     qreal                numSquaresHeight;  ///< Параметр высоты (чило квадратов по вертикали)
+    size_t               squareCount;
 
     /**
      * @brief Двусвязный список
@@ -76,16 +80,6 @@ private:
     QGraphicsItemGroup  *arrowGroup;        ///< Группа элементов стрелки
     QColor               wayPenColor;
 
-    /**
-     * @brief Таймер для задержки отрисовки
-     *
-     * При создании окна и виджета необходимо некоторое время,
-     * чтобы родительский слой развернулся,
-     * чтобы принимать от него адекватные параметры ширины и высоты.
-     *
-     */
-    QTimer              *timer;
-
 private:
     /**
      * @brief Метод для удаления всех элементов из группы
@@ -97,10 +91,13 @@ private:
      */
     void deleteItemsFromGroup(QGraphicsItemGroup *group);
 
-
-
+    /**
+     * @brief Метод поиска и отрисовки пути
+     * @param start Квадрат начала пути
+     * @param end   Квадрат конца пути
+     */
     void findWay(QGraphicsRectItem* start,
-                                        QGraphicsRectItem*   end);
+                 QGraphicsRectItem*   end);
 
 protected:
     /**
@@ -115,6 +112,10 @@ protected:
      */
     void mousePressEvent(QMouseEvent *event) override;
 
+    /**
+     * @brief Обработчик события перемещения указателя мыши
+     * @param [in] event
+     */
     void mouseMoveEvent(QMouseEvent *event) override;
 
 public:
@@ -123,7 +124,7 @@ public:
      * @param [in] width  Ширина в квадратах
      * @param [in] height Высота в квадратах
      */
-    void generate(const qreal& width, const qreal& height);
+    void generate(const qreal& width, const qreal& height, QProgressBar* parent);
 };
 
 #endif // MYGRAPHICVIEW_H

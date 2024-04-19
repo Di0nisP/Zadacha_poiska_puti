@@ -5,7 +5,7 @@ MyGraphicView::MyGraphicView(QWidget *parent)
 {
     scene = new QGraphicsScene();                               // Инициализируем сцену для отрисовки
 
-    squaresGroup = new QGraphicsItemGroup();                    // Инициализируем группу квадратов
+    squaresGroup  = new QGraphicsItemGroup();                   // Инициализируем группу квадратов
     squaresGroup->setZValue(3);                                 // Устанавливаем слоем уровня 2
     scene->addItem(squaresGroup);                               // Добавляем первую группу в сцену
 
@@ -13,7 +13,7 @@ MyGraphicView::MyGraphicView(QWidget *parent)
     squaresGroup->setZValue(2);                                 // Устанавливаем слоем уровня 1
     scene->addItem(literalsGroup);
 
-    arrowGroup = new QGraphicsItemGroup();
+    arrowGroup    = new QGraphicsItemGroup();
     arrowGroup->setZValue(1);
     scene->addItem(arrowGroup);
 
@@ -28,21 +28,15 @@ MyGraphicView::MyGraphicView(QWidget *parent)
     this->setRenderHint(QPainter::Antialiasing);                // Включаем сглаживание для лучшего отображения
 
     // Задаем дополнительные параметры для отрисовки
-    squareSize = 20;
+    squareSize       = 20;
     squareBrashColor = Qt::blue;
-    wayPenColor = Qt::red;
+    wayPenColor      = Qt::red;
 
-    // Настраиваем Таймер:
-    //timer = new QTimer();                                       // Инициализируем Таймер
-    //timer->setSingleShot(true);                                 // Таймер срабатывает единожды (по команде)
-    //connect(timer, SIGNAL(timeout()),
-    //          this, SLOT(slotReplot()));   // Подключаем СЛОТ для отрисовки к Таймеру
-
+    // Настройка сигналов и слотов:
     connect(this, SIGNAL(replotRequested()),
-            this, SLOT(replot()));
-
-    connect(this, SIGNAL(createGraphRequested()),
-            this, SLOT(createGraph()), Qt::QueuedConnection);
+            this, SLOT  (replot()));
+    connect(this, SIGNAL(createGraphRequested(QProgressBar*)),
+            this, SLOT  (createGraph(QProgressBar*)));
 }
 
 MyGraphicView::~MyGraphicView()
@@ -65,18 +59,23 @@ void MyGraphicView::replot()
     deleteItemsFromGroup(squaresGroup);
     pointA = QPoint();    squareA = nullptr;
     pointB = QPoint();    squareB = nullptr;
-    squaresGraph.clear();
+    squareCount = 0;
 
     // Получаем текущее время с точностью до наносекунд
     auto now = std::chrono::high_resolution_clock::now();
     // Преобразуем время в наносекунды
     auto ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(now);
     // Получаем количество наносекунд с начала эпохи
-    auto nano_seconds = ns.time_since_epoch().count();
+    auto nanoSeconds = ns.time_since_epoch().count();
 
     // Создаем генератор случайных чисел:
-    std::mt19937 gen(nano_seconds);
+    std::mt19937 gen(nanoSeconds);
     std::uniform_real_distribution<> dist(0,1);
+
+    qreal sizeMax = 100 * 100;
+    qreal sizeFact = numSquaresHeight * numSquaresWidth;
+    qreal oldW = numSquaresWidth;
+    qreal oldH = numSquaresHeight;
 
     // Добавление квадратов на сцену:
     // из левого верхенего угла вправо и вниз:
@@ -91,30 +90,53 @@ void MyGraphicView::replot()
                 square->setBrush(squareBrashColor);     // Устанавливаем заливку для квадрата
             } else {                
                 square->setBrush(Qt::NoBrush);          // Отключаем заливку для квадрата
+                ++squareCount;
             }
 
             squaresGroup->addToGroup(square);           // Добавляем квадрат в группу (и на сцену)
+
+            // Замедляет процесс - как следствие
+            if (sizeMax < sizeFact)
+                QCoreApplication::processEvents();          // Для обработки событий во время цикла
+                if (oldW != numSquaresWidth || oldH != numSquaresHeight) return;
         }
     }
 }
 
 void MyGraphicView::deleteItemsFromGroup(QGraphicsItemGroup* group)
 {
+    scene->removeItem(group); // -
+
     auto childItems = group->childItems();
 
     foreach(QGraphicsItem *item, childItems)
-       if(item && item->group() == group)
-          delete item;
+        if(item && item->group() == group) {
+            group->removeFromGroup(item);
+            delete item;
+        }
+
+    scene->addItem(group);   // -
 }
 
-void MyGraphicView::createGraph()
+void MyGraphicView::createGraph(QProgressBar* parent)
 {
+    // Инициализациия прогресса:
+    squaresGraph.clear(); // Удаление старых данных
+    size_t progressValue = 0;
+    parent->setValue(progressValue);
+    parent->setVisible(true);
+
     // Задаём дипазон для сравнения (с запасом):
     qreal squareMinSize = squareSize * 0.5;
     qreal squareMaxSize = squareSize * 1.5;
 
+    qreal oldW = numSquaresWidth;
+    qreal oldH = numSquaresHeight;
+
     auto squares = squaresGroup->childItems();
     foreach(QGraphicsItem *item, squares) {
+        QCoreApplication::processEvents(); // Для обработки событий во время цикла
+        if (oldW != numSquaresWidth || oldH != numSquaresHeight) return;
         QGraphicsRectItem *square = qgraphicsitem_cast<QGraphicsRectItem*>(item);
         if (!square) continue;
         // Смотрим только незакрашенные квадраты:
@@ -146,8 +168,13 @@ void MyGraphicView::createGraph()
                     }
                 }
             }
+            // Обновление прогресса
+            parent->setValue(static_cast<qreal>(++progressValue * 100)
+                             / static_cast<qreal>(squareCount) );
         }
     }
+
+    parent->setVisible(false);
 }
 
 void MyGraphicView::findWay(QGraphicsRectItem* start,
@@ -168,6 +195,7 @@ void MyGraphicView::findWay(QGraphicsRectItem* start,
 
         // Проверяем соседей текущей вершины:
         for (QGraphicsRectItem* neighbor : squaresGraph[current]) {
+            // Проверяем, имеет ли сосед соседей:
             if (!way.count(neighbor)) {
                 q.push_back(neighbor);
                 way[neighbor] = current;
@@ -299,7 +327,7 @@ void MyGraphicView::wheelEvent(QWheelEvent *event)
 
 void MyGraphicView::mousePressEvent(QMouseEvent *event)
 {
-    // Проверяем, была ли нажата левая кнопка мыши без модификаторов клавиатуры
+    // Проверяем, была ли нажата левая кнопка мыши + Ctrl
     if (event->button() == Qt::LeftButton && event->modifiers() == Qt::ControlModifier) {
         deleteItemsFromGroup(arrowGroup);
 
@@ -344,7 +372,7 @@ void MyGraphicView::mousePressEvent(QMouseEvent *event)
             findWay(squareA, squareB);
     }
 
-    /*if (event->button() == Qt::RightButton && !pointA.isNull()) {
+/*    if (event->button() == Qt::RightButton && !pointA.isNull()) {
         deleteItemsFromGroup(arrowGroup);
 
         // Получаем координаты клика мыши
@@ -384,7 +412,7 @@ void MyGraphicView::mousePressEvent(QMouseEvent *event)
         }
 
         findWay(squareA, squareB);
-    } */
+    }   //*/
 
     /// @todo Временное решение: перемещение нажатием левой кнопки мыши
     QGraphicsView::mousePressEvent(event);
@@ -438,12 +466,14 @@ void MyGraphicView::mouseMoveEvent(QMouseEvent *event)
     QGraphicsView::mouseMoveEvent(event);
 }
 
-void MyGraphicView::generate(const qreal& width, const qreal& height)
-{
+void MyGraphicView::generate(const qreal& width, const qreal& height, QProgressBar* parent)
+{  
     numSquaresWidth  = width;
     numSquaresHeight = height;
-    //slotReplot(); //emit replotRequested(); //timer->start(0);
+
+    // Формирование поля:
     emit replotRequested();
+
     // Формирование графа:
-    emit createGraphRequested();
+    emit createGraphRequested(parent);
 }
